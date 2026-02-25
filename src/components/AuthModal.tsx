@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Mail, Lock, AlertCircle, Plane } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from './Button';
 import Input from './Input';
@@ -8,12 +9,12 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ onClose }: AuthModalProps) {
-  const [isSignIn, setIsSignIn] = useState(true);
+  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn, signUp } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,75 +22,90 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setLoading(true);
 
     try {
-      const { error } = isSignIn
-        ? await signIn(email, password)
-        : await signUp(email, password);
-
-      if (error) {
-        setError(error.message);
+      if (isSignUp) {
+        const { error } = await signUp(email, password);
+        if (error) throw error;
+        onClose();
       } else {
+        const { error } = await signIn(email, password);
+        if (error) throw error;
         onClose();
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        {isSignIn ? 'Sign In' : 'Create Account'}
-      </h2>
+    <div>
+      {/* Logo */}
+      <div className="flex items-center justify-center gap-2 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
+          <Plane className="w-5 h-5 text-white" />
+        </div>
+        <span className="text-xl font-bold font-display" style={{ color: 'var(--color-text)' }}>
+          SkyWings
+        </span>
+      </div>
+
+      <h3 className="text-center text-lg font-semibold mb-1" style={{ color: 'var(--color-text)' }}>
+        {isSignUp ? 'Create your account' : 'Welcome back'}
+      </h3>
+      <p className="text-center text-sm mb-6" style={{ color: 'var(--color-text-3)' }}>
+        {isSignUp ? 'Sign up to start booking flights' : 'Sign in to manage your bookings'}
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="email"
-          label="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
-          required
-        />
+        <div className="relative">
+          <Input
+            type="email"
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+          />
+        </div>
 
-        <Input
-          type="password"
-          label="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-        />
+        <div className="relative">
+          <Input
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            minLength={6}
+          />
+        </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-500">{error}</p>
           </div>
         )}
 
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          className="w-full"
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : isSignIn ? 'Sign In' : 'Sign Up'}
+        <Button type="submit" size="lg" className="w-full" disabled={loading}>
+          {loading ? (
+            <><div className="spinner w-4 h-4" /> Processing...</>
+          ) : isSignUp ? (
+            'Create Account'
+          ) : (
+            'Sign In'
+          )}
         </Button>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className="mt-5 text-center">
         <button
-          onClick={() => {
-            setIsSignIn(!isSignIn);
-            setError('');
-          }}
-          className="text-blue-600 hover:text-blue-700 font-medium"
+          onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+          className="text-sm font-medium hover:underline"
+          style={{ color: 'var(--color-primary)' }}
         >
-          {isSignIn
-            ? "Don't have an account? Sign up"
-            : 'Already have an account? Sign in'}
+          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
         </button>
       </div>
     </div>

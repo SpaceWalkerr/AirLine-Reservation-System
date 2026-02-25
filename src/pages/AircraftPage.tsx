@@ -1,114 +1,133 @@
-import { useState, useEffect } from 'react';
-import { Plane, Users, Gauge, MapPin } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Plane, Users, Gauge, Ruler, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Aircraft } from '../types';
+import { AnimatedSection, StaggerContainer, staggerItem } from '../components/AnimatedPage';
+import { FlightCardSkeleton } from '../components/Skeleton';
 
 export default function AircraftPage() {
   const [aircraft, setAircraft] = useState<Aircraft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    loadAircraft();
+    async function fetchAircraft() {
+      const { data } = await supabase.from('aircraft').select('*').order('manufacturer');
+      if (data) setAircraft(data);
+      setLoading(false);
+    }
+    fetchAircraft();
   }, []);
 
-  const loadAircraft = async () => {
-    const { data } = await supabase
-      .from('aircraft')
-      .select('*')
-      .order('manufacturer, model');
+  const filtered = aircraft.filter(a =>
+    `${a.manufacturer} ${a.model} ${a.registration_number}`.toLowerCase().includes(search.toLowerCase())
+  );
 
-    if (data) setAircraft(data);
-    setLoading(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Plane className="w-16 h-16 text-blue-600 animate-bounce mx-auto mb-4" />
-          <p className="text-xl text-gray-600">Loading fleet...</p>
-        </div>
-      </div>
-    );
-  }
+  const images = [
+    'https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=600&q=80',
+    'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=600&q=80',
+    'https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=600&q=80',
+    'https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=600&q=80',
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div
-        className="relative h-[400px] bg-cover bg-center flex items-center"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(https://images.pexels.com/photos/46148/aircraft-jet-landing-cloud-46148.jpeg)',
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">Our Fleet</h1>
-          <p className="text-xl text-gray-200">
-            Experience comfort and luxury with our modern aircraft collection
-          </p>
+    <div className="min-h-screen pt-24 pb-16">
+      {/* Hero */}
+      <div className="relative py-16 mb-12 overflow-hidden" style={{ background: 'var(--color-bg-soft)' }}>
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
+          <AnimatedSection>
+            <p className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-primary)' }}>Our Fleet</p>
+            <h1 className="text-4xl md:text-5xl font-bold font-display mb-4" style={{ color: 'var(--color-text)' }}>
+              World-Class Aircraft
+            </h1>
+            <p className="text-lg max-w-xl" style={{ color: 'var(--color-text-3)' }}>
+              Explore our modern fleet of aircraft designed for comfort, safety, and efficiency.
+            </p>
+          </AnimatedSection>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {aircraft.map((plane) => (
-            <div
-              key={plane.id}
-              className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow"
-            >
-              <div
-                className="h-64 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${plane.image_url})`,
-                }}
-              />
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-1">{plane.model}</h2>
-                    <p className="text-gray-600">{plane.manufacturer}</p>
-                  </div>
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <Plane className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-
-                <p className="text-gray-700 mb-6">{plane.description}</p>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-600">Capacity</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">{plane.total_seats}</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      E: {plane.economy_seats} | B: {plane.business_seats} | F: {plane.first_class_seats}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Gauge className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-600">Speed</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">{plane.cruise_speed}</p>
-                    <p className="text-xs text-gray-600 mt-1">km/h</p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4 col-span-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-600">Maximum Range</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {plane.range_km.toLocaleString()} km
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Search */}
+        <div className="relative max-w-md mb-8">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--color-text-4)' }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search aircraft..."
+            className="input-field pl-10 w-full"
+          />
         </div>
+
+        {loading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => <FlightCardSkeleton key={i} />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <Plane className="w-12 h-12 mx-auto mb-4 opacity-20" style={{ color: 'var(--color-text-4)' }} />
+            <p className="text-lg font-semibold" style={{ color: 'var(--color-text-2)' }}>No aircraft found</p>
+          </div>
+        ) : (
+          <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((a, i) => (
+              <motion.div key={a.id} variants={staggerItem} className="card-interactive overflow-hidden group" style={{ background: 'var(--color-bg-soft)' }}>
+                <div className="h-40 overflow-hidden relative">
+                  <img
+                    src={images[i % images.length]}
+                    alt={`${a.manufacturer} ${a.model}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-3 left-4 right-4">
+                    <p className="text-white font-bold font-display text-lg">{a.manufacturer} {a.model}</p>
+                    <p className="text-white/70 text-xs font-mono">{a.registration_number}</p>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+                      <Users className="w-4 h-4 mx-auto mb-1" style={{ color: 'var(--color-primary)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{a.total_seats}</p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-text-4)' }}>Seats</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+                      <Gauge className="w-4 h-4 mx-auto mb-1" style={{ color: 'var(--color-primary)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>920</p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-text-4)' }}>km/h</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+                      <Ruler className="w-4 h-4 mx-auto mb-1" style={{ color: 'var(--color-primary)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>12k</p>
+                      <p className="text-[10px]" style={{ color: 'var(--color-text-4)' }}>km</p>
+                    </div>
+                  </div>
+                  {a.economy_seats > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {a.economy_seats > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(99, 102, 241, 0.08)', color: 'var(--color-primary)' }}>
+                          Economy: {a.economy_seats}
+                        </span>
+                      )}
+                      {a.business_seats > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b' }}>
+                          Business: {a.business_seats}
+                        </span>
+                      )}
+                      {a.first_class_seats > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          First: {a.first_class_seats}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </StaggerContainer>
+        )}
       </div>
     </div>
   );

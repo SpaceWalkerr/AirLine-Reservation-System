@@ -1,173 +1,202 @@
-import { CheckCircle, Plane, Calendar, MapPin, Download, Mail } from 'lucide-react';
-import { Flight, Booking } from '../types';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, Plane, Download, Home, Calendar, Copy, Check, MapPin, Clock, ArrowRight, Ticket } from 'lucide-react';
 import Button from '../components/Button';
 
 interface ConfirmationPageProps {
   confirmationData: {
-    booking: Booking;
-    flight: Flight;
+    booking_reference: string;
+    flight?: any;
+    passengers?: any[];
+    total_amount?: number;
+    seat_class?: string;
   };
   onNavigate: (page: string) => void;
 }
 
+function ConfettiPiece({ delay, left }: { delay: number; left: number }) {
+  const colors = ['#6366f1', '#f59e0b', '#0ea5e9', '#10b981', '#f43f5e', '#8b5cf6'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  return (
+    <motion.div
+      initial={{ y: -20, x: left, opacity: 1, rotate: 0 }}
+      animate={{ y: '100vh', opacity: 0, rotate: 720 + Math.random() * 360 }}
+      transition={{ duration: 3 + Math.random() * 2, delay, ease: 'linear' }}
+      className="fixed top-0 z-50 pointer-events-none"
+      style={{ left: `${left}%`, width: 8, height: 8, borderRadius: Math.random() > 0.5 ? '50%' : '2px', background: color }}
+    />
+  );
+}
+
 export default function ConfirmationPage({ confirmationData, onNavigate }: ConfirmationPageProps) {
-  const { booking, flight } = confirmationData;
+  const [showConfetti, setShowConfetti] = useState(true);
+  const [copied, setCopied] = useState(false);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  useEffect(() => {
+    const t = setTimeout(() => setShowConfetti(false), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const copyRef = () => {
+    navigator.clipboard.writeText(confirmationData.booking_reference);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  const flight = confirmationData.flight;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-xl text-gray-600">
-            Your flight has been successfully booked
-          </p>
-        </div>
+    <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+      <AnimatePresence>
+        {showConfetti &&
+          Array.from({ length: 40 }).map((_, i) => (
+            <ConfettiPiece key={i} delay={i * 0.05} left={Math.random() * 100} />
+          ))}
+      </AnimatePresence>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-            <div className="flex items-center justify-between text-white">
-              <div>
-                <p className="text-sm opacity-90 mb-1">Booking Reference</p>
-                <p className="text-3xl font-bold tracking-wider">{booking.booking_reference}</p>
-              </div>
-              <Plane className="w-12 h-12 opacity-80" />
+      <div className="max-w-lg w-full mx-auto px-4">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          className="card p-8 text-center"
+          style={{ background: 'var(--color-bg-soft)' }}
+        >
+          {/* Success icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', delay: 0.2, stiffness: 200, damping: 15 }}
+            className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center"
+            style={{ background: 'rgba(16, 185, 129, 0.1)', border: '2px solid rgba(16, 185, 129, 0.3)' }}
+          >
+            <CheckCircle className="w-10 h-10 text-emerald-500" />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <h1 className="text-2xl font-bold font-display mb-2" style={{ color: 'var(--color-text)' }}>
+              Booking Confirmed!
+            </h1>
+            <p className="text-sm mb-8" style={{ color: 'var(--color-text-3)' }}>
+              Your flight has been booked successfully. A confirmation email will be sent shortly.
+            </p>
+          </motion.div>
+
+          {/* Booking Reference */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="rounded-xl p-4 mb-6 cursor-pointer group"
+            onClick={copyRef}
+            style={{ background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.1)' }}
+          >
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-4)' }}>Booking Reference</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl font-mono font-bold tracking-[0.2em]" style={{ color: 'var(--color-primary)' }}>
+                {confirmationData.booking_reference}
+              </span>
+              <motion.div whileTap={{ scale: 0.8 }}>
+                {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5 opacity-40 group-hover:opacity-70 transition-opacity" style={{ color: 'var(--color-text)' }} />}
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <Plane className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Flight Number</p>
-                    <p className="font-semibold text-gray-900">{flight.flight_number}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Departure Date</p>
-                    <p className="font-semibold text-gray-900">{formatDate(flight.departure_time)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Route</p>
-                    <p className="font-semibold text-gray-900">
-                      {flight.origin_airport?.code} → {flight.destination_airport?.code}
-                    </p>
-                  </div>
-                </div>
+          {/* Flight details */}
+          {flight && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="rounded-xl p-5 mb-6 text-left"
+              style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Plane className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{flight.flight_number}</span>
+                {confirmationData.seat_class && (
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(99, 102, 241, 0.08)', color: 'var(--color-primary)' }}>
+                    {confirmationData.seat_class.replace('_', ' ')}
+                  </span>
+                )}
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Flight Details</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Departure</span>
-                    <span className="font-semibold">{formatTime(flight.departure_time)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Arrival</span>
-                    <span className="font-semibold">{formatTime(flight.arrival_time)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Passengers</span>
-                    <span className="font-semibold">{booking.total_passengers}</span>
-                  </div>
-                  <div className="flex justify-between pt-3 border-t border-gray-200">
-                    <span className="text-gray-900 font-semibold">Total Amount</span>
-                    <span className="text-blue-600 font-bold text-xl">
-                      ${booking.total_amount.toFixed(2)}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="text-center flex-1">
+                  <p className="text-lg font-bold font-display" style={{ color: 'var(--color-text)' }}>
+                    {flight.origin_airport?.code || '---'}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-4)' }}>
+                    {flight.origin_airport?.city || 'Origin'}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-              <div className="flex items-start gap-3">
-                <Mail className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-blue-900 mb-2">Confirmation Email Sent</h3>
-                  <p className="text-sm text-blue-800">
-                    A confirmation email with your booking details and e-ticket has been sent to your registered email address.
+                <div className="flex items-center gap-1" style={{ color: 'var(--color-text-4)' }}>
+                  <div className="w-8 h-px" style={{ background: 'var(--color-border)' }} />
+                  <ArrowRight className="w-4 h-4" />
+                  <div className="w-8 h-px" style={{ background: 'var(--color-border)' }} />
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-lg font-bold font-display" style={{ color: 'var(--color-text)' }}>
+                    {flight.destination_airport?.code || '---'}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-4)' }}>
+                    {flight.destination_airport?.city || 'Destination'}
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() => onNavigate('bookings')}
-              >
-                <Download className="w-5 h-5" />
-                View My Bookings
-              </Button>
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() => onNavigate('home')}
-              >
-                Book Another Flight
-              </Button>
-            </div>
-          </div>
-        </div>
+              <div className="grid grid-cols-3 gap-3 mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <div className="text-center">
+                  <Calendar className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: 'var(--color-text-4)' }} />
+                  <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                    {flight.departure_time ? new Date(flight.departure_time).toLocaleDateString() : '---'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <Clock className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: 'var(--color-text-4)' }} />
+                  <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                    {flight.departure_time ? new Date(flight.departure_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <MapPin className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: 'var(--color-text-4)' }} />
+                  <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                    {confirmationData.passengers?.length || 1} pax
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Important Information</h2>
-          <ul className="space-y-3 text-gray-700">
-            <li className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <span>Please arrive at the airport at least 2 hours before departure for international flights</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <span>Carry a valid passport and visa documents for international travel</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <span>Check-in online 24 hours before departure to save time</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <span>Review baggage allowance and restrictions before packing</span>
-            </li>
-          </ul>
-        </div>
+          {/* Total */}
+          {confirmationData.total_amount && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="flex items-center justify-between p-3 rounded-lg mb-8"
+              style={{ background: 'var(--color-bg)' }}
+            >
+              <span className="text-sm" style={{ color: 'var(--color-text-3)' }}>Total Paid</span>
+              <span className="text-lg font-bold font-display" style={{ color: 'var(--color-text)' }}>${confirmationData.total_amount.toFixed(2)}</span>
+            </motion.div>
+          )}
+
+          {/* Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex gap-3"
+          >
+            <Button variant="secondary" size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => onNavigate('bookings')}>
+              <Ticket className="w-4 h-4" /> My Bookings
+            </Button>
+            <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => onNavigate('home')}>
+              <Home className="w-4 h-4" /> Go Home
+            </Button>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

@@ -10,19 +10,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-2)' }}>
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-            error ? 'border-red-500' : ''
-          } ${className}`}
-          {...props}
-        />
+        <input ref={ref} className={`input-field ${className}`} {...props} />
         {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <p className="mt-1 text-xs text-red-500">{error}</p>
         )}
       </div>
     );
@@ -30,5 +24,4 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-
 export default Input;

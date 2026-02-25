@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { Plane, Menu, X, User, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plane, Menu, X, User, LogOut, Ticket, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import Button from './Button';
 import Modal from './Modal';
 import AuthModal from './AuthModal';
 
@@ -9,153 +12,197 @@ interface NavbarProps {
   onNavigate: (page: string) => void;
 }
 
+const navLinks = [
+  { id: 'home', label: 'Home' },
+  { id: 'aircraft', label: 'Fleet' },
+  { id: 'about', label: 'About' },
+];
+
 export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const navItems = [
-    { name: 'Home', id: 'home' },
-    { name: 'Flights', id: 'flights' },
-    { name: 'Aircraft', id: 'aircraft' },
-    { name: 'About', id: 'about' },
-  ];
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  const handleSignOut = async () => {
-    await signOut();
-    onNavigate('home');
+  const handleNav = (page: string) => {
+    onNavigate(page);
+    setMobileOpen(false);
+    setUserMenuOpen(false);
   };
 
   return (
     <>
-      <nav className="bg-white shadow-md sticky top-0 z-40">
+      <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div
-              className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => onNavigate('home')}
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <button
+              onClick={() => handleNav('home')}
+              className="flex items-center gap-2.5 group"
             >
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Plane className="w-8 h-8 text-white" />
+              <div className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center group-hover:bg-brand-600 transition-colors">
+                <Plane className="w-5 h-5 text-white -rotate-45" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">SkyWings</span>
-            </div>
+              <span className="text-lg font-bold font-display" style={{ color: 'var(--color-text)' }}>
+                SkyWings
+              </span>
+            </button>
 
-            <div className="hidden md:flex items-center space-x-8">
-              {navItems.map((item) => (
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
                 <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`text-lg font-medium transition-colors ${
-                    currentPage === item.id
-                      ? 'text-blue-600'
-                      : 'text-gray-700 hover:text-blue-600'
-                  }`}
+                  key={link.id}
+                  onClick={() => handleNav(link.id)}
+                  className="relative px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                  style={{ color: currentPage === link.id ? 'var(--color-primary)' : 'var(--color-text-3)' }}
                 >
-                  {item.name}
+                  {link.label}
+                  {currentPage === link.id && (
+                    <motion.div
+                      layoutId="nav-indicator"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-brand-500"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
 
-            <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <>
-                  <button
-                    onClick={() => onNavigate('bookings')}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    <User className="w-5 h-5" />
-                    <span>My Bookings</span>
-                  </button>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center space-x-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span>Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setAuthModalOpen(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
+            {/* Right side */}
+            <div className="flex items-center gap-3">
+              {/* Theme toggle */}
+              <button
+                onClick={toggleTheme}
+                className="theme-toggle"
+                aria-label="Toggle theme"
+              >
+                <div className={`theme-toggle-knob ${isDark ? 'dark' : 'light'}`}>
+                  {isDark ? (
+                    <Moon className="w-3 h-3 text-white m-auto mt-[3.5px]" />
+                  ) : (
+                    <Sun className="w-3 h-3 text-white m-auto mt-[3.5px]" />
+                  )}
+                </div>
+              </button>
 
-            <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
+              {/* User area */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="hidden sm:block text-sm font-medium truncate max-w-[120px]">
+                      {user.email?.split('@')[0]}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden shadow-lg"
+                        style={{ background: 'var(--color-bg-soft)', border: '1px solid var(--color-border)' }}
+                      >
+                        <button
+                          onClick={() => handleNav('bookings')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
+                          style={{ color: 'var(--color-text-2)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <Ticket className="w-4 h-4" /> My Bookings
+                        </button>
+                        <div style={{ height: 1, background: 'var(--color-border)' }} />
+                        <button
+                          onClick={() => { signOut(); setUserMenuOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 transition-colors"
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <LogOut className="w-4 h-4" /> Sign Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
-                <Menu className="w-6 h-6" />
+                <Button size="sm" onClick={() => setAuthOpen(true)}>
+                  Sign In
+                </Button>
               )}
-            </button>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-text-3)', background: 'var(--color-surface)' }}
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
-            <div className="px-4 py-4 space-y-3">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    onNavigate(item.id);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    currentPage === item.id
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))}
-              {user ? (
-                <>
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden overflow-hidden border-t"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-soft)' }}
+            >
+              <div className="px-4 py-3 space-y-1">
+                {navLinks.map((link) => (
                   <button
-                    onClick={() => {
-                      onNavigate('bookings');
-                      setMobileMenuOpen(false);
+                    key={link.id}
+                    onClick={() => handleNav(link.id)}
+                    className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                      color: currentPage === link.id ? 'var(--color-primary)' : 'var(--color-text-2)',
+                      background: currentPage === link.id ? 'var(--color-surface)' : 'transparent',
                     }}
-                    className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    {link.label}
+                  </button>
+                ))}
+                {user && (
+                  <button
+                    onClick={() => handleNav('bookings')}
+                    className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    style={{ color: 'var(--color-text-2)' }}
                   >
                     My Bookings
                   </button>
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-3 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    setAuthModalOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
-      <Modal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)}>
-        <AuthModal onClose={() => setAuthModalOpen(false)} />
+      {/* Auth Modal */}
+      <Modal isOpen={authOpen} onClose={() => setAuthOpen(false)}>
+        <AuthModal onClose={() => setAuthOpen(false)} />
       </Modal>
     </>
   );
