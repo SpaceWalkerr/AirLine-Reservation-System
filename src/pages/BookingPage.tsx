@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, AlertCircle, Plane, ArrowRight, Lock, Users, Info, Check, Utensils, Wheelchair } from 'lucide-react';
+import { User, AlertCircle, Plane, ArrowRight, Lock, Users, Info, Check, Utensils, Accessibility } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Flight, Passenger, SeatClass } from '../types';
@@ -249,7 +249,7 @@ export default function BookingPage({ bookingData, onNavigate }: BookingPageProp
                     </label>
                     <div className="space-y-2">
                       {[
-                        { value: 'wheelchair', label: 'Wheelchair Assistance', icon: Wheelchair },
+                        { value: 'wheelchair', label: 'Wheelchair Assistance', icon: Accessibility },
                         { value: 'extra-legroom', label: 'Extra Legroom Required' },
                         { value: 'oxygen', label: 'Oxygen Supply' },
                         { value: 'infant', label: 'Traveling with Infant' },
