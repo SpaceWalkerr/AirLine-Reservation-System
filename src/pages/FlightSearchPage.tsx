@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Clock, Calendar, Users, ArrowRight, SlidersHorizontal, ArrowUpDown, X, Filter } from 'lucide-react';
+import { Plane, Clock, Calendar, Users, ArrowRight, SlidersHorizontal, X, Filter, Sunrise, Sun, Moon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Flight } from '../types';
 import { FlightCardSkeleton } from '../components/Skeleton';
 import Button from '../components/Button';
+import FlightReviews from '../components/FlightReviews';
 
 interface FlightSearchPageProps {
   searchParams: {
@@ -17,6 +18,7 @@ interface FlightSearchPageProps {
 }
 
 type SortOption = 'price-low' | 'price-high' | 'duration' | 'departure';
+type TimeOfDay = 'any' | 'morning' | 'afternoon' | 'evening';
 
 export default function FlightSearchPage({ searchParams, onNavigate }: FlightSearchPageProps) {
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -26,6 +28,10 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState(5000);
   const [priceFilter, setPriceFilter] = useState(5000);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('any');
+  const [minSeats, setMinSeats] = useState(1);
+  const [aircraftFilter, setAircraftFilter] = useState('all');
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
 
   useEffect(() => {
     if (!searchParams?.from || !searchParams?.to || !searchParams?.departureDate) {
@@ -98,8 +104,37 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
     }
   };
 
+  const getDepartureHour = (dep: string) => new Date(dep).getHours();
+
+  const getTimeOfDayLabel = (t: TimeOfDay) => {
+    if (t === 'morning') return '6 AM – 12 PM';
+    if (t === 'afternoon') return '12 PM – 6 PM';
+    if (t === 'evening') return '6 PM – 12 AM';
+    return 'Any time';
+  };
+
+  const uniqueAircraft = Array.from(new Set(flights.map(f => (f as any).aircraft?.model).filter(Boolean)));
+
+  useEffect(() => {
+    let count = 0;
+    if (priceFilter < maxPrice) count++;
+    if (timeOfDay !== 'any') count++;
+    if (minSeats > 1) count++;
+    if (aircraftFilter !== 'all') count++;
+    setActiveFilterCount(count);
+  }, [priceFilter, maxPrice, timeOfDay, minSeats, aircraftFilter]);
+
   const processed = flights
-    .filter(f => getPrice(f) <= priceFilter)
+    .filter(f => {
+      if (getPrice(f) > priceFilter) return false;
+      if (getSeats(f) < minSeats) return false;
+      if (aircraftFilter !== 'all' && (f as any).aircraft?.model !== aircraftFilter) return false;
+      const hour = getDepartureHour(f.departure_time);
+      if (timeOfDay === 'morning' && (hour < 6 || hour >= 12)) return false;
+      if (timeOfDay === 'afternoon' && (hour < 12 || hour >= 18)) return false;
+      if (timeOfDay === 'evening' && (hour < 18 || hour >= 24)) return false;
+      return true;
+    })
     .sort((a, b) => {
       switch (sortBy) {
         case 'price-low': return getPrice(a) - getPrice(b);
@@ -176,6 +211,12 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
         <div className="flex items-center justify-between mb-5">
           <p className="text-sm" style={{ color: 'var(--color-text-4)' }}>
             {processed.length} flight{processed.length !== 1 ? 's' : ''} found
+            {activeFilterCount > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold"
+                style={{ background: 'var(--color-primary)', color: 'white' }}>
+                {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}
+              </span>
+            )}
           </p>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -229,6 +270,7 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
                     </button>
                   </div>
 
+                  {/* Price */}
                   <div className="mb-6">
                     <label className="text-sm font-medium block mb-3" style={{ color: 'var(--color-text-2)' }}>
                       Max Price
@@ -249,12 +291,83 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
                     </div>
                   </div>
 
+                  {/* Time of Day */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium block mb-3" style={{ color: 'var(--color-text-2)' }}>
+                      Departure Time
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([['any', 'Any', Clock], ['morning', 'Morning', Sunrise], ['afternoon', 'Afternoon', Sun], ['evening', 'Evening', Moon]] as const).map(([val, label, Icon]) => (
+                        <button
+                          key={val}
+                          onClick={() => setTimeOfDay(val)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                          style={{
+                            background: timeOfDay === val ? 'var(--color-primary)' : 'var(--color-surface)',
+                            color: timeOfDay === val ? 'white' : 'var(--color-text-3)',
+                            border: `1px solid ${timeOfDay === val ? 'transparent' : 'var(--color-border)'}`,
+                          }}
+                        >
+                          <Icon className="w-3 h-3" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {timeOfDay !== 'any' && (
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-4)' }}>{getTimeOfDayLabel(timeOfDay)}</p>
+                    )}
+                  </div>
+
+                  {/* Min Seats */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium block mb-3" style={{ color: 'var(--color-text-2)' }}>
+                      Min Available Seats
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={minSeats}
+                        onChange={e => setMinSeats(Number(e.target.value))}
+                        className="w-full h-1.5 rounded-full cursor-pointer accent-brand-500"
+                      />
+                      <span className="text-sm font-bold w-6 text-center" style={{ color: 'var(--color-primary)' }}>{minSeats}</span>
+                    </div>
+                  </div>
+
+                  {/* Aircraft Type */}
+                  {uniqueAircraft.length > 0 && (
+                    <div className="mb-6">
+                      <label className="text-sm font-medium block mb-3" style={{ color: 'var(--color-text-2)' }}>
+                        Aircraft Type
+                      </label>
+                      <select
+                        value={aircraftFilter}
+                        onChange={e => setAircraftFilter(e.target.value)}
+                        className="w-full text-xs px-3 py-2 rounded-lg"
+                        style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+                      >
+                        <option value="all">All Aircraft</option>
+                        {uniqueAircraft.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <button
-                    onClick={() => setPriceFilter(maxPrice)}
+                    onClick={() => {
+                      setPriceFilter(maxPrice);
+                      setTimeOfDay('any');
+                      setMinSeats(1);
+                      setAircraftFilter('all');
+                    }}
                     className="w-full py-2 rounded-lg text-sm font-medium transition-colors"
                     style={{ background: 'var(--color-surface)', color: 'var(--color-text-3)' }}
                   >
-                    Reset Filters
+                    Reset All Filters
                   </button>
                 </div>
               </motion.aside>
@@ -364,6 +477,16 @@ export default function FlightSearchPage({ searchParams, onNavigate }: FlightSea
           </div>
         </div>
       </div>
+
+      {/* Flight Reviews for this route */}
+      {!loading && flights.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-10">
+          <FlightReviews
+            flightNumber={`${flights[0]?.origin_airport?.code}-${flights[0]?.destination_airport?.code}`}
+            flightId={flights[0]?.id}
+          />
+        </div>
+      )}
     </div>
   );
 }

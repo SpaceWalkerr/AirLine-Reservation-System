@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, AlertCircle, Plane, ArrowRight, Lock, Users, Info, Check } from 'lucide-react';
+import { User, AlertCircle, Plane, ArrowRight, Lock, Users, Info, Check, Utensils, Wheelchair } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Flight, Passenger, SeatClass } from '../types';
 import StepIndicator from '../components/StepIndicator';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Select from '../components/Select';
 import Modal from '../components/Modal';
 import AuthModal from '../components/AuthModal';
 
@@ -32,6 +33,8 @@ export default function BookingPage({ bookingData, onNavigate }: BookingPageProp
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mealPreference, setMealPreference] = useState('standard');
+  const [specialAssistance, setSpecialAssistance] = useState<string[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>(
     Array.from({ length: bookingData.passengers }, () => ({
       first_name: '',
@@ -197,6 +200,89 @@ export default function BookingPage({ bookingData, onNavigate }: BookingPageProp
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+
+              {/* Special Requests */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="card p-6 md:p-8"
+                style={{ background: 'var(--color-bg-soft)' }}
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-surface)', color: 'var(--color-primary)' }}>
+                    <Utensils className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold font-display" style={{ color: 'var(--color-text)' }}>Special Requests</h2>
+                    <p className="text-xs" style={{ color: 'var(--color-text-4)' }}>Optional preferences for your journey</p>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  {/* Meal Preference */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+                      Meal Preference
+                    </label>
+                    <Select
+                      value={mealPreference}
+                      onChange={(e) => setMealPreference(e.target.value)}
+                    >
+                      <option value="standard">Standard Meal</option>
+                      <option value="vegetarian">Vegetarian</option>
+                      <option value="vegan">Vegan</option>
+                      <option value="halal">Halal</option>
+                      <option value="kosher">Kosher</option>
+                      <option value="gluten-free">Gluten-Free</option>
+                      <option value="diabetic">Diabetic-Friendly</option>
+                      <option value="child">Child Meal</option>
+                    </Select>
+                  </div>
+
+                  {/* Special Assistance */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-text)' }}>
+                      Special Assistance
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'wheelchair', label: 'Wheelchair Assistance', icon: Wheelchair },
+                        { value: 'extra-legroom', label: 'Extra Legroom Required' },
+                        { value: 'oxygen', label: 'Oxygen Supply' },
+                        { value: 'infant', label: 'Traveling with Infant' },
+                        { value: 'pet', label: 'Pet in Cabin' },
+                      ].map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all"
+                          style={{
+                            background: specialAssistance.includes(option.value) ? 'rgba(99, 102, 241, 0.06)' : 'transparent',
+                            border: `1px solid ${specialAssistance.includes(option.value) ? 'rgba(99, 102, 241, 0.2)' : 'var(--color-border)'}`,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={specialAssistance.includes(option.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSpecialAssistance([...specialAssistance, option.value]);
+                              } else {
+                                setSpecialAssistance(specialAssistance.filter(v => v !== option.value));
+                              }
+                            }}
+                            className="w-4 h-4 rounded"
+                            style={{ accentColor: 'var(--color-primary)' }}
+                          />
+                          <span className="text-sm flex-1" style={{ color: 'var(--color-text)' }}>
+                            {option.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
 

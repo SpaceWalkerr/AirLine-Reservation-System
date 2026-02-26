@@ -48,8 +48,11 @@ export default function Footer({ onNavigate }: FooterProps) {
               {[
                 { label: 'About Us', page: 'about' },
                 { label: 'Our Fleet', page: 'aircraft' },
-                { label: 'Destinations', page: 'flights' },
+                { label: 'Flight Status', page: 'flight-status' },
                 { label: 'My Bookings', page: 'bookings' },
+                { label: 'Online Check-In', page: 'check-in' },
+                { label: 'Baggage Info', page: 'baggage' },
+                { label: 'Loyalty Rewards', page: 'loyalty' },
               ].map((item) => (
                 <li key={item.page}>
                   <button
@@ -69,11 +72,20 @@ export default function Footer({ onNavigate }: FooterProps) {
               Support
             </h4>
             <ul className="space-y-2.5">
-              {['Help Center', 'Contact Us', 'Privacy Policy', 'Terms of Service'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm transition-colors hover:underline" style={{ color: 'var(--color-text-3)' }}>
-                    {item}
-                  </a>
+              {[
+                { label: 'Contact Us', page: 'contact' },
+                { label: 'Help Center', page: 'contact' },
+                { label: 'Privacy Policy', page: '#' },
+                { label: 'Terms of Service', page: '#' },
+              ].map((item) => (
+                <li key={item.label}>
+                  <button
+                    onClick={() => item.page !== '#' && onNavigate(item.page)}
+                    className="text-sm transition-colors hover:underline"
+                    style={{ color: 'var(--color-text-3)' }}
+                  >
+                    {item.label}
+                  </button>
                 </li>
               ))}
             </ul>

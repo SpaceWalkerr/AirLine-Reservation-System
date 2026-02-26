@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Calendar, MapPin, ArrowRight, Ticket, Search, AlertCircle, LogIn, Clock, Users } from 'lucide-react';
+import { Plane, Calendar, MapPin, ArrowRight, Ticket, Search, AlertCircle, LogIn, Clock, Users, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Booking } from '../types';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
+import Modal from '../components/Modal';
 import { BookingCardSkeleton } from '../components/Skeleton';
 
 interface MyBookingsPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, bookingId?: string) => void;
 }
 
 export default function MyBookingsPage({ onNavigate }: MyBookingsPageProps) {
@@ -16,6 +17,10 @@ export default function MyBookingsPage({ onNavigate }: MyBookingsPageProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'confirmed' | 'cancelled' | 'completed'>('all');
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [changingSeat, setChangingSeat] = useState<{ bookingId: string; passengerIdx: number; currentSeat: string } | null>(null);
+  const [selectedNewSeat, setSelectedNewSeat] = useState('');
+  const [seatChanging, setSeatChanging] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -42,6 +47,79 @@ export default function MyBookingsPage({ onNavigate }: MyBookingsPageProps) {
   }, [user]);
 
   const filtered = filter === 'all' ? bookings : bookings.filter(b => b.booking_status === filter);
+
+  const cancelBooking = async (bookingId: string, flightId: string, passengers: any[]) => {
+    if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
+    
+    setCancelling(bookingId);
+    try {
+      // Update booking status
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ booking_status: 'cancelled' })
+        .eq('id', bookingId);
+
+      if (bookingError) throw bookingError;
+
+      // Return seats to availability
+      const seatClass = passengers[0]?.seat_class;
+      if (seatClass && flightId) {
+        const seatCountField = `available_${seatClass}_seats`;
+        const { data: flight } = await supabase
+          .from('flights')
+          .select(seatCountField)
+          .eq('id', flightId)
+          .single();
+
+        if (flight) {
+          await supabase
+            .from('flights')
+            .update({ [seatCountField]: flight[seatCountField] + passengers.length })
+            .eq('id', flightId);
+        }
+      }
+
+      // Update local state
+      setBookings(prev => prev.map(b => 
+        b.id === bookingId ? { ...b, booking_status: 'cancelled' } : b
+      ));
+      
+      alert('Booking cancelled successfully');
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert('Failed to cancel booking. Please try again.');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const changeSeat = async () => {
+    if (!changingSeat || !selectedNewSeat) return;
+
+    setSeatChanging(true);
+    try {
+      // In production, update passenger's seat in database
+      const booking = bookings.find(b => b.id === changingSeat.bookingId);
+      if (booking) {
+        const passengers = (booking as any).passengers;
+        if (passengers && passengers[changingSeat.passengerIdx]) {
+          // Simulate seat change
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          passengers[changingSeat.passengerIdx].seat_number = selectedNewSeat;
+          
+          setBookings([...bookings]);
+          alert('Seat changed successfully!');
+          setChangingSeat(null);
+          setSelectedNewSeat('');
+        }
+      }
+    } catch (error) {
+      console.error('Error changing seat:', error);
+      alert('Failed to change seat. Please try again.');
+    } finally {
+      setSeatChanging(false);
+    }
+  };
 
   const statusColor = (s: string) => {
     switch (s) {
@@ -226,14 +304,61 @@ export default function MyBookingsPage({ onNavigate }: MyBookingsPageProps) {
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="sm:text-right flex sm:flex-col items-center sm:items-end justify-between">
-                        <p className="text-xl font-bold font-display" style={{ color: 'var(--color-text)' }}>
-                          ${booking.total_amount?.toFixed(2) || '0.00'}
-                        </p>
-                        <p className="text-[10px] uppercase" style={{ color: 'var(--color-text-4)' }}>
-                          {new Date(booking.created_at).toLocaleDateString()}
-                        </p>
+                      {/* Price & Actions */}
+                      <div className="sm:text-right flex sm:flex-col gap-3 items-center sm:items-end justify-between">
+                        <div>
+                          <p className="text-xl font-bold font-display" style={{ color: 'var(--color-text)' }}>
+                            ${booking.total_amount?.toFixed(2) || '0.00'}
+                          </p>
+                          <p className="text-[10px] uppercase" style={{ color: 'var(--color-text-4)' }}>
+                            {new Date(booking.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap justify-end">
+                          {booking.booking_status === 'confirmed' && (
+                            <>
+                              <button
+                                onClick={() => onNavigate('boarding-pass', booking.id)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1"
+                                style={{
+                                  background: 'var(--color-primary)',
+                                  color: 'white'
+                                }}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Boarding Pass
+                              </button>
+                              {passengers.length > 0 && passengers[0]?.seat_number && (
+                                <button
+                                  onClick={() => setChangingSeat({ bookingId: booking.id, passengerIdx: 0, currentSeat: passengers[0].seat_number })}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1"
+                                  style={{
+                                    background: 'rgba(99, 102, 241, 0.08)',
+                                    color: 'var(--color-primary)',
+                                    border: '1px solid rgba(99, 102, 241, 0.15)'
+                                  }}
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Change Seat
+                                </button>
+                              )}
+                              <button
+                                onClick={() => cancelBooking(booking.id, flight?.id, passengers)}
+                                disabled={cancelling === booking.id}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1"
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.08)',
+                                  color: '#ef4444',
+                                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                                  opacity: cancelling === booking.id ? 0.5 : 1
+                                }}
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                {cancelling === booking.id ? 'Cancelling...' : 'Cancel'}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -243,6 +368,72 @@ export default function MyBookingsPage({ onNavigate }: MyBookingsPageProps) {
           </AnimatePresence>
         )}
       </div>
+
+      {/* Seat Change Modal */}
+      <Modal isOpen={!!changingSeat} onClose={() => setChangingSeat(null)}>
+        <div className="p-6">
+          <h2 className="text-2xl font-bold font-display mb-4" style={{ color: 'var(--color-text)' }}>
+            Change Seat
+          </h2>
+          
+          {changingSeat && (
+            <>
+              <p className="text-sm mb-4" style={{ color: 'var(--color-text-3)' }}>
+                Current seat: <span className="font-bold" style={{ color: 'var(--color-primary)' }}>
+                  {changingSeat.currentSeat}
+                </span>
+              </p>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+                  Select New Seat
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {['A', 'B', 'C', 'D', 'E', 'F'].map((letter) => (
+                    <div key={letter} className="space-y-2">
+                      {[1, 2, 3, 4, 5].map((row) => {
+                        const seatNumber = `${row}${letter}`;
+                        const isCurrentSeat = seatNumber === changingSeat.currentSeat;
+                        const isSelected = seatNumber === selectedNewSeat;
+                        
+                        return (
+                          <button
+                            key={seatNumber}
+                            onClick={() => !isCurrentSeat && setSelectedNewSeat(seatNumber)}
+                            disabled={isCurrentSeat}
+                            className="w-full aspect-square rounded text-xs font-semibold transition-all"
+                            style={{
+                              background: isCurrentSeat ? 'var(--color-text-4)' : isSelected ? 'var(--color-primary)' : 'var(--color-surface)',
+                              color: isSelected || isCurrentSeat ? 'white' : 'var(--color-text)',
+                              border: `1px solid ${isSelected ? 'transparent' : 'var(--color-border)'}`,
+                              cursor: isCurrentSeat ? 'not-allowed' : 'pointer',
+                              opacity: isCurrentSeat ? 0.5 : 1
+                            }}
+                          >
+                            {seatNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button onClick={changeSeat} disabled={!selectedNewSeat || seatChanging} className="flex-1">
+                  {seatChanging ? 'Changing...' : 'Confirm Change'}
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setChangingSeat(null);
+                  setSelectedNewSeat('');
+                }}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

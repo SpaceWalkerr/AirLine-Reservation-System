@@ -16,8 +16,16 @@ const AircraftPage = lazy(() => import('./pages/AircraftPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const BoardingPassPage = lazy(() => import('./pages/BoardingPassPage'));
+const FlightStatusPage = lazy(() => import('./pages/FlightStatusPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const CheckInPage = lazy(() => import('./pages/CheckInPage'));
+const BaggagePage = lazy(() => import('./pages/BaggagePage'));
+const LoyaltyProgramPage = lazy(() => import('./pages/LoyaltyProgramPage'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
-type Page = 'home' | 'flights' | 'seatSelection' | 'booking' | 'payment' | 'confirmation' | 'aircraft' | 'about' | 'bookings';
+type Page = 'home' | 'flights' | 'seatSelection' | 'booking' | 'payment' | 'confirmation' | 'aircraft' | 'about' | 'bookings' | 'boarding-pass' | 'flight-status' | 'contact' | 'profile' | 'check-in' | 'baggage' | 'loyalty' | 'admin';
 
 function PageLoader() {
   return (
@@ -66,6 +74,22 @@ function App() {
         return <AboutPage />;
       case 'bookings':
         return <MyBookingsPage onNavigate={handleNavigate} />;
+      case 'boarding-pass':
+        return <BoardingPassPage onNavigate={handleNavigate} bookingId={pageData} />;
+      case 'flight-status':
+        return <FlightStatusPage onNavigate={handleNavigate} />;
+      case 'contact':
+        return <ContactPage onNavigate={handleNavigate} />;
+      case 'profile':
+        return <UserProfilePage onNavigate={handleNavigate} />;
+      case 'check-in':
+        return <CheckInPage onNavigate={handleNavigate} />;
+      case 'baggage':
+        return <BaggagePage onNavigate={handleNavigate} />;
+      case 'loyalty':
+        return <LoyaltyProgramPage onNavigate={handleNavigate} />;
+      case 'admin':
+        return <AdminDashboard onNavigate={handleNavigate} />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }

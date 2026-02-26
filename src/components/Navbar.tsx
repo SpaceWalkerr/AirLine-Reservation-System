@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Menu, X, User, LogOut, Ticket, Sun, Moon } from 'lucide-react';
+import { Plane, Menu, X, User, LogOut, Ticket, Sun, Moon, Award, UserCog, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Button from './Button';
@@ -14,6 +14,9 @@ interface NavbarProps {
 
 const navLinks = [
   { id: 'home', label: 'Home' },
+  { id: 'flight-status', label: 'Flight Status' },
+  { id: 'check-in', label: 'Check-In' },
+  { id: 'baggage', label: 'Baggage' },
   { id: 'aircraft', label: 'Fleet' },
   { id: 'about', label: 'About' },
 ];
@@ -121,6 +124,15 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
                         style={{ background: 'var(--color-bg-soft)', border: '1px solid var(--color-border)' }}
                       >
                         <button
+                          onClick={() => handleNav('profile')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
+                          style={{ color: 'var(--color-text-2)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <UserCog className="w-4 h-4" /> My Profile
+                        </button>
+                        <button
                           onClick={() => handleNav('bookings')}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
                           style={{ color: 'var(--color-text-2)' }}
@@ -128,6 +140,24 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
                           <Ticket className="w-4 h-4" /> My Bookings
+                        </button>
+                        <button
+                          onClick={() => handleNav('loyalty')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
+                          style={{ color: 'var(--color-text-2)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <Award className="w-4 h-4" /> Rewards
+                        </button>
+                        <button
+                          onClick={() => handleNav('admin')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
+                          style={{ color: 'var(--color-text-2)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <LayoutDashboard className="w-4 h-4" /> Admin Dashboard
                         </button>
                         <div style={{ height: 1, background: 'var(--color-border)' }} />
                         <button
@@ -186,13 +216,36 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
                   </button>
                 ))}
                 {user && (
-                  <button
-                    onClick={() => handleNav('bookings')}
-                    className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                    style={{ color: 'var(--color-text-2)' }}
-                  >
-                    My Bookings
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleNav('bookings')}
+                      className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{ color: 'var(--color-text-2)' }}
+                    >
+                      My Bookings
+                    </button>
+                    <button
+                      onClick={() => handleNav('profile')}
+                      className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{ color: 'var(--color-text-2)' }}
+                    >
+                      My Profile
+                    </button>
+                    <button
+                      onClick={() => handleNav('loyalty')}
+                      className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{ color: 'var(--color-text-2)' }}
+                    >
+                      Rewards
+                    </button>
+                    <button
+                      onClick={() => handleNav('admin')}
+                      className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{ color: 'var(--color-text-2)' }}
+                    >
+                      Admin Dashboard
+                    </button>
+                  </>
                 )}
               </div>
             </motion.div>
